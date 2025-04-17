@@ -48,6 +48,7 @@ import queue  # Added
 import uuid  # Added
 import functools # Added
 
+
 import os
 import time
 import types
@@ -258,6 +259,18 @@ def get_args():
 
     return parser.parse_args()
 
+global user_connections
+user_connections = {}  # {user_id: set of websocket connections}
+
+async def stream_audio_to_clients(user_id, audio_chunk):
+    """Send audio chunk to all WebSocket clients for a given user."""
+    if user_id in user_connections:
+        for ws in user_connections[user_id]:
+            try:
+                await ws.send(audio_chunk.tobytes())  # Send raw int8 bytes
+            except Exception as e:
+                user_connections[user_id].remove(ws)  # Remove disconnected client
+
 
 def load_audio(wav_path, target_sample_rate=16000):
     assert target_sample_rate == 16000, "hard coding in server"
@@ -358,6 +371,7 @@ def run_sync_streaming_inference(
 
     # Process results
     audios = []
+    audio_bytes = b""
     while True:
         try:
             result = user_data._completed_requests.get() # Add timeout
@@ -373,7 +387,11 @@ def run_sync_streaming_inference(
 
             audio_chunk = result.as_numpy("waveform").reshape(-1)
             if audio_chunk.size > 0: # Only append non-empty chunks
-                 audios.append(audio_chunk)
+                audio_chunk = np.clip(audio_chunk, -1.0, 1.0) # Clip to avoid overflow
+                audio_chunk = (audio_chunk * 127.0).astype(np.int8) 
+                # convert to int8
+                await stream_audio_to_clients(user_id, audio_chunk)
+                audios.append(audio_chunk)
             else:
                 print("Warning: received empty audio chunk.")
 
@@ -449,7 +467,7 @@ async def send_streaming(
 
     try: # Wrap in try...finally to ensure client closing
         print(f"{name}: Initializing sync client for streaming...")
-        sync_triton_client = grpcclient_sync.InferenceServerClient(url=server_url, verbose=False) # Create client here
+        sync_triton_client = grpcclient_sync.InferenceServerClient(url=server_url, verbose=True) # Create client here
 
         print(f"{name}: Starting streaming processing for {len(manifest_item_list)} items.")
         for i, item in enumerate(manifest_item_list):
@@ -612,16 +630,10 @@ async def main():
     # --- Client Initialization based on mode ---
     triton_client = None
     protocol_client = None
-    if args.mode == "offline":
-        print("Initializing gRPC client for offline mode...")
-        # Use the async client for offline tasks
-        triton_client = grpcclient_aio.InferenceServerClient(url=url, verbose=False)
-        protocol_client = grpcclient_aio
-    elif args.mode == "streaming":
+
+    if args.mode == "streaming":
         print("Initializing gRPC client for streaming mode...")
         # Use the sync client for streaming tasks, handled via asyncio.to_thread
-        # We will create one sync client instance PER TASK inside send_streaming.
-        # triton_client = grpcclient_sync.InferenceServerClient(url=url, verbose=False) # REMOVED: Client created per task now
         protocol_client = grpcclient_sync # protocol client for input prep
     else:
         raise ValueError(f"Invalid mode: {args.mode}")

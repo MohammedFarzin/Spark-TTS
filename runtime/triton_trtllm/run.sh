@@ -27,7 +27,7 @@ if [ $stage -le 1 ] && [ $stop_stage -ge 1 ]; then
     echo "Building TensorRT engines"
     trtllm-build --checkpoint_dir $trt_weights_dir \
                 --output_dir $trt_engines_dir \
-                --max_batch_size 16 \
+                --max_batch_size 32 \
                 --max_num_tokens 32768 \
                 --gemm_plugin $trt_dtype || exit 1
 fi
@@ -48,7 +48,7 @@ if [ $stage -le 2 ] && [ $stop_stage -ge 2 ]; then
     MODEL_DIR=$huggingface_model_local_dir
     LLM_TOKENIZER_DIR=$huggingface_model_local_dir/LLM
     BLS_INSTANCE_NUM=4
-    TRITON_MAX_BATCH_SIZE=16
+    TRITON_MAX_BATCH_SIZE=128
     # streaming TTS parameters
     AUDIO_CHUNK_DURATION=1.0
     MAX_AUDIO_CHUNK_DURATION=30.0
@@ -102,8 +102,8 @@ if [ $stage -le 5 ] && [ $stop_stage -ge 5 ]; then
     else
         python client_http.py \
             --reference-audio ../../example/prompt_audio.wav \
-            --reference-text "吃燕窝就选燕之屋，本节目由26年专注高品质燕窝的燕之屋冠名播出。豆奶牛奶换着喝，营养更均衡，本节目由豆本豆豆奶特约播出。" \
-            --target-text "身临其境，换新体验。塑造开源语音合成新范式，让智能语音更自然。" \
+            --reference-text "" \
+            --target-text "Hello how you doing buddy " \
             --model-name spark_tts
     fi
 fi

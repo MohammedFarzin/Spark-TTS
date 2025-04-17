@@ -1,0 +1,28 @@
+The log is parsing from triton_client.get_inference_statistics(), to better human readability. 
+To learn more about the log, please refer to: 
+1. https://github.com/triton-inference-server/server/blob/main/docs/user_guide/metrics.md 
+2. https://github.com/triton-inference-server/server/issues/5374 
+
+To better improve throughput, we always would like let requests wait in the queue for a while, and then execute them with a larger batch size. 
+However, there is a trade-off between the increased queue time and the increased batch size. 
+You may change 'max_queue_delay_microseconds' and 'preferred_batch_size' in the model configuration file to achieve this. 
+See https://github.com/triton-inference-server/server/blob/main/docs/user_guide/model_configuration.md#delayed-batching for more details. 
+
+model name is audio_tokenizer 
+queue time 1.48  s, compute infer time 1.37  s, compute input time 0.00  s, compute output time 0.04  s 
+execuate inference with batch_size 1  total 26    times, total_infer_time 1372.89   ms, avg_infer_time 1372.89  /26   =52.80 ms, avg_infer_time_per_sample 1372.89  /26   /1=52.80 ms 
+input 3.79      ms, avg 0.15 ms, output 35.11     ms, avg 1.35 ms 
+model name is spark_tts 
+queue time 161.20 s, compute infer time 61.19 s, compute input time 0.02  s, compute output time 0.01  s 
+execuate inference with batch_size 1  total 22    times, total_infer_time 48270.35  ms, avg_infer_time 48270.35 /22   =2194.11 ms, avg_infer_time_per_sample 48270.35 /22   /1=2194.11 ms 
+input 12.86     ms, avg 0.58 ms, output 12.09     ms, avg 0.55 ms 
+execuate inference with batch_size 2  total 2     times, total_infer_time 6461.96   ms, avg_infer_time 6461.96  /2    =3230.98 ms, avg_infer_time_per_sample 6461.96  /2    /2=1615.49 ms 
+input 1.07      ms, avg 0.54 ms, output 0.88      ms, avg 0.44 ms 
+model name is tensorrt_llm 
+queue time 0.00  s, compute infer time 48.41 s, compute input time 0.00  s, compute output time 0.00  s 
+execuate inference with batch_size 1  total 26    times, total_infer_time 48411.06  ms, avg_infer_time 48411.06 /26   =1861.96 ms, avg_infer_time_per_sample 48411.06 /26   /1=1861.96 ms 
+input 1.48      ms, avg 0.06 ms, output 0.86      ms, avg 0.03 ms 
+model name is vocoder 
+queue time 0.62  s, compute infer time 1.35  s, compute input time 0.00  s, compute output time 0.38  s 
+execuate inference with batch_size 1  total 26    times, total_infer_time 1347.93   ms, avg_infer_time 1347.93  /26   =51.84 ms, avg_infer_time_per_sample 1347.93  /26   /1=51.84 ms 
+input 1.25      ms, avg 0.05 ms, output 380.39    ms, avg 14.63 ms 

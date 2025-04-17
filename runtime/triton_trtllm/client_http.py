@@ -58,7 +58,7 @@ def get_args():
     parser.add_argument(
         "--target-text",
         type=str,
-        default="身临其境，换新体验。塑造开源语音合成新范式，让智能语音更自然。",
+        default="Hello wassup how you doing eveything is fine right",
         help="",
     )
 
