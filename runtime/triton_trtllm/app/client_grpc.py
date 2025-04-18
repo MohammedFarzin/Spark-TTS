@@ -360,7 +360,7 @@ def run_sync_streaming_inference(
     # Establish stream
     sync_triton_client.start_stream(callback=functools.partial(callback, user_data))
 
-    # Send requestprotocol_client
+    # Send request
     sync_triton_client.async_stream_infer(
         model_name,
         inputs,
@@ -532,9 +532,96 @@ async def send_streaming(
     print(f"{name}: Finished streaming processing. Total duration synthesized: {total_duration:.4f}s")
     return total_duration, latency_data
 
+async def send(
+    manifest_item_list: list,
+    name: str,
+    triton_client: tritonclient.grpc.aio.InferenceServerClient,
+    protocol_client: types.ModuleType,
+    log_interval: int,
+    model_name: str,
+    padding_duration: int = None,
+    audio_save_dir: str = "./",
+    save_sample_rate: int = 16000,
+):
+    total_duration = 0.0
+    latency_data = []
+    task_id = int(name[5:])
+
+    print(f"manifest_item_list: {manifest_item_list}")
+    for i, item in enumerate(manifest_item_list):
+        if i % log_interval == 0:
+            print(f"{name}: {i}/{len(manifest_item_list)}")
+        waveform, sample_rate = load_audio(item["audio_filepath"], target_sample_rate=16000)
+        reference_text, target_text = item["reference_text"], item["target_text"]
+
+        inputs, outputs = prepare_request_input_output(
+            protocol_client,
+            waveform,
+            reference_text,
+            target_text,
+            sample_rate,
+            padding_duration=padding_duration
+        )
+        sequence_id = 100000000 + i + task_id * 10
+        start = time.time()
+        response = await triton_client.infer(model_name, inputs, request_id=str(sequence_id), outputs=outputs)
+
+        audio = response.as_numpy("waveform").reshape(-1)
+        actual_duration = len(audio) / save_sample_rate
+
+        end = time.time() - start
+
+        audio_save_path = os.path.join(audio_save_dir, f"{item['target_audio_path']}.wav")
+        sf.write(audio_save_path, audio, save_sample_rate, "PCM_16")
+
+        latency_data.append((end, actual_duration))
+        total_duration += actual_duration
+
+    return total_duration, latency_data
+
+
+def load_manifests(manifest_path):
+    with open(manifest_path, "r") as f:
+        manifest_list = []
+        for line in f:
+            assert len(line.strip().split("|")) == 4
+            utt, prompt_text, prompt_wav, gt_text = line.strip().split("|")
+            utt = Path(utt).stem
+            # gt_wav = os.path.join(os.path.dirname(manifest_path), "wavs", utt + ".wav")
+            if not os.path.isabs(prompt_wav):
+                prompt_wav = os.path.join(os.path.dirname(manifest_path), prompt_wav)
+            manifest_list.append(
+                {
+                    "audio_filepath": prompt_wav,
+                    "reference_text": prompt_text,
+                    "target_text": gt_text,
+                    "target_audio_path": utt,
+                }
+            )
+    return manifest_list
+
 
 def split_data(data, k):
-    pass
+    n = len(data)
+    if n < k:
+        print(f"Warning: the length of the input list ({n}) is less than k ({k}). Setting k to {n}.")
+        k = n
+
+    quotient = n // k
+    remainder = n % k
+
+    result = []
+    start = 0
+    for i in range(k):
+        if i < remainder:
+            end = start + quotient + 1
+        else:
+            end = start + quotient
+
+        result.append(data[start:end])
+        start = end
+
+    return result
 
 async def main():
     args = get_args()
