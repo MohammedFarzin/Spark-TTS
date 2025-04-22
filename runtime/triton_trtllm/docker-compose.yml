@@ -1,9 +1,9 @@
 services:
   tts:
-    image: soar97/triton-spark-tts:25.02
-    shm_size: '2gb'
+    build:
+      context: ./celery_service_spark
+    shm_size: '16gb'
     ports:
-      - "8000:8000"
       - "8001:8001"
       - "8002:8002"
     environment:
@@ -20,5 +20,27 @@ services:
             - driver: nvidia
               device_ids: ['0']
               capabilities: [gpu]
+    restart: always
+    depends_on:
+      - redis
     command: >
-      /bin/bash -c "rm -rf Spark-TTS && git clone https://github.com/SparkAudio/Spark-TTS.git && cd Spark-TTS/runtime/triton_trtllm && bash run.sh 0 5"
+      /bin/bash -c "rm -rf Spark-TTS && git clone https://github.com/MohammedFarzin/Spark-TTS.git && cd Spark-TTS/runtime/triton_trtllm && bash run.sh 0 3"
+
+  fastapi_services:
+    build:
+      context: ./app
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./app:/workspace/
+    restart: always
+    depends_on:
+      - redis
+
+  redis:
+    image: redis:latest
+    ports:
+      - "6379:6379"
+    restart: always
+
+      
