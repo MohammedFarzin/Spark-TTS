@@ -10,6 +10,11 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
 from pydantic import BaseModel, Field
 from scipy.signal import resample
 from celery import Celery
+from Logger import Log
+import traceback
+
+logger = Log("fastapi.log")
+logger = logger.initialize_logger_handler()
 
 class TTSRequest(BaseModel):
     reference_audio_path: str # Or maybe base64 encoded audio data
@@ -34,7 +39,7 @@ async def handle_tts_websocket(websocket: WebSocket):
                 request_data = json.loads(data)
                 request_model = TTSRequest(**request_data)
 
-                print(f"Received request: {request_model}")
+                logger.info(f"Received request: {request_model}")
 
                 # Inform client processing started
                 # await websocket.send_json({"status": "processing", "target_audio_id": request_model.stream_id})
@@ -49,13 +54,17 @@ async def handle_tts_websocket(websocket: WebSocket):
                     queue='voice_queue'
                 )
                 if result:
+                    logger.info(f"Processing result: {result}")
                     await websocket.send_json({"status": "success", "target_audio_id": request_model.target_audio_id, "data": result})
                 else:
+                    logger.error(f"Processing failed for request: {request_model}")
                     await websocket.send_json({"status": "error", "target_audio_id": request_model.target_audio_id, "message": "Processing failed"})
 
             except json.JSONDecodeError:
+                logger.error("Invalid JSON received.")
                 await websocket.send_json({"status": "error", "message": "Invalid JSON received."})
             except Exception as e: # Catch validation errors etc.
+                logger.error(f"Error processing request: {traceback.format_exc()}")
                 await websocket.send_json({"status": "error", "message": f"Error processing request: {str(e)}"})
 
     except WebSocketDisconnect:

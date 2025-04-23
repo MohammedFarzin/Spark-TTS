@@ -24,7 +24,7 @@ services:
     depends_on:
       - redis
     command: >
-      /bin/bash -c "rm -rf Spark-TTS && git clone https://github.com/MohammedFarzin/Spark-TTS.git && cd Spark-TTS/runtime/triton_trtllm && bash run.sh 0 3"
+      /bin/bash -c "rm -rf Spark-TTS && git clone https://github.com/MohammedFarzin/Spark-TTS.git && cd Spark-TTS/runtime/triton_trtllm && bash run.sh 3 3"
 
   fastapi_services:
     build:
