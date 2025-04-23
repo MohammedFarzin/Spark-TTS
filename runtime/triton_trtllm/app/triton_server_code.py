@@ -71,4 +71,4 @@ if __name__ == "__main__":
     # Run the FastAPI app using Uvicorn
     # host="0.0.0.0" makes it accessible on your network
     # reload=True is useful for development (auto-restarts on code changes)
-    uvicorn.run(app, host="0.0.0.0", port=8000) # Change port if needed
+    uvicorn.run(app, host="0.0.0.0", port=8004) # Change port if needed
