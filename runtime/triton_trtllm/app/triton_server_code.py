@@ -37,9 +37,9 @@ async def handle_tts_websocket(websocket: WebSocket):
             data = await websocket.receive_text()
             try:
                 request_data = json.loads(data)
+                logger.info(f"Received request: {request_data}")
                 request_model = TTSRequest(**request_data)
 
-                logger.info(f"Received request: {request_model}")
 
                 # Inform client processing started
                 # await websocket.send_json({"status": "processing", "target_audio_id": request_model.stream_id})
@@ -55,10 +55,10 @@ async def handle_tts_websocket(websocket: WebSocket):
                 )
                 if result:
                     logger.info(f"Processing result: {result}")
-                    await websocket.send_json({"status": "success", "target_audio_id": request_model.target_audio_id, "data": result})
+                    await websocket.send_json({"status": "success", "target_audio_id": request_model.stream_id, "data": result})
                 else:
                     logger.error(f"Processing failed for request: {request_model}")
-                    await websocket.send_json({"status": "error", "target_audio_id": request_model.target_audio_id, "message": "Processing failed"})
+                    await websocket.send_json({"status": "error", "target_audio_id": request_model.stream_id, "message": "Processing failed"})
 
             except json.JSONDecodeError:
                 logger.error("Invalid JSON received.")
