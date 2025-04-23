@@ -48,18 +48,13 @@ async def handle_tts_websocket(websocket: WebSocket):
                 # NOTE: This blocks processing further messages on this specific
 
 
-                result = celery_app.send_task(
+                celery_app.send_task(
                     'tasks.process_streaming_request',
                     args=[request_model.stream_id, request_model.target_text, request_model.reference_audio_path, request_model.reference_text, ],
                     queue='voice_queue'
                 )
-                if result:
-                    logger.info(f"Processing result: {result}")
-                    await websocket.send_json({"status": "success", "target_audio_id": request_model.stream_id, "data": result})
-                else:
-                    logger.error(f"Processing failed for request: {request_model}")
-                    await websocket.send_json({"status": "error", "target_audio_id": request_model.stream_id, "message": "Processing failed"})
-
+                logger.info(f"Processing result")
+                await websocket.send_json({"status": "success", "target_audio_id": request_model.stream_id})
             except json.JSONDecodeError:
                 logger.error("Invalid JSON received.")
                 await websocket.send_json({"status": "error", "message": "Invalid JSON received."})
