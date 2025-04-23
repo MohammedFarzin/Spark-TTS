@@ -326,7 +326,7 @@ async def process_streaming_request(
     print(f"{stream_id}: Finished streaming processing. Total duration synthesized: {total_duration:.4f}s")
 
 
-@celery_app.task(name="celery_app.process_streaming_request")
+@celery_app.task(name="celery_app.process_streaming_request", queue="voice_queue")
 def spark_processing(    
     stream_id: str,
     target_text: str,
@@ -337,6 +337,7 @@ def spark_processing(
     chunk_overlap_duration: float = 0.1,
     padding_duration: int = 10):
 
+    print("Starting Celery task for streaming request...")
     try: 
         asyncio.run(process_streaming_request(
             stream_id=stream_id,

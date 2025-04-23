@@ -34,8 +34,10 @@ async def handle_tts_websocket(websocket: WebSocket):
                 request_data = json.loads(data)
                 request_model = TTSRequest(**request_data)
 
+                print(f"Received request: {request_model}")
+
                 # Inform client processing started
-                await websocket.send_json({"status": "processing", "target_audio_id": request_model.stream_id})
+                # await websocket.send_json({"status": "processing", "target_audio_id": request_model.stream_id})
 
                 # Process the request
                 # NOTE: This blocks processing further messages on this specific
@@ -71,4 +73,4 @@ if __name__ == "__main__":
     # Run the FastAPI app using Uvicorn
     # host="0.0.0.0" makes it accessible on your network
     # reload=True is useful for development (auto-restarts on code changes)
-    uvicorn.run(app, host="0.0.0.0", port=8004) # Change port if needed
+    uvicorn.run(app, host="0.0.0.0", port=8000) # Change port if needed
